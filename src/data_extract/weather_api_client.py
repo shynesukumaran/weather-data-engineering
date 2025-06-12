@@ -1,6 +1,3 @@
-import datetime
-import os
-
 import openmeteo_requests
 import pandas as pd
 import requests_cache
@@ -9,7 +6,7 @@ from retry_requests import retry
 
 class WeatherAPIClient:
     """
-    Client for fetching weather data from Opem-Meteo APIs (historical and forecast)
+    Client for fetching weather data from Open-Meteo APIs (historical and forecast)
     """
 
     def __init__(self, latitude: float, longitude: float):
@@ -18,7 +15,6 @@ class WeatherAPIClient:
         self._setup_client()
 
     def _setup_client(self):
-        """Sets up the Open-Meteo API client with caching and retry logic."""
         cache_session = requests_cache.CachedSession(".cache", expire_after=-1)
         retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
         self.openmeteo = openmeteo_requests.Client(session=retry_session)
@@ -27,10 +23,6 @@ class WeatherAPIClient:
     def _process_hourly_response(
         self, response, expected_hourly_vars: list[str]
     ) -> pd.DataFrame:
-        """
-        Helper to process a single hourly response object by directly accessing variables by index.
-        Requires `expected_hourly_vars` to match the order of variables in the API response.
-        """
         hourly = response.Hourly()
         if not hourly:
             print("API_Client Warning: No hourly data in response.")
@@ -45,8 +37,6 @@ class WeatherAPIClient:
             )
         }
 
-        # Assign values based on the expected order and index
-        # This assumes the order in params is strictly maintained by the API
         for i, var_name in enumerate(expected_hourly_vars):
             hourly_data[var_name] = hourly.Variables(i).ValuesAsNumpy()
 
@@ -58,8 +48,6 @@ class WeatherAPIClient:
         Fetches historical weather data from Open-Meteo Archive API.
         """
         url = "https://archive-api.open-meteo.com/v1/archive"
-        # Define the exact order of hourly variables as per the Open-Meteo example
-        # This order MUST match the indexing in _process_hourly_response
         hourly_vars = [
             "temperature_2m",
             "relative_humidity_2m",
@@ -76,13 +64,11 @@ class WeatherAPIClient:
         }
         try:
             responses = self.openmeteo.weather_api(url, params=params)
-            response = responses[0]  # Assuming one location
+            response = responses[0]
             print(
                 f"API_Client: Fetched Historical Data from {response.Latitude()}°N {response.Longitude()}°E"
             )
-            df = self._process_hourly_response(
-                response, hourly_vars
-            )  # Pass expected vars for processing
+            df = self._process_hourly_response(response, hourly_vars)
             return df
         except Exception as e:
             print(f"API_Client Error: Fetching historical data: {e}")
@@ -93,8 +79,6 @@ class WeatherAPIClient:
         Fetches the next X hours of weather forecast data from Open-Meteo Forecast API.
         """
         url = "https://api.open-meteo.com/v1/forecast"
-        # Define the exact order of hourly variables as per the Open-Meteo example
-        # This order MUST match the indexing in _process_hourly_response
         hourly_vars = [
             "temperature_2m",
             "relative_humidity_2m",
@@ -115,15 +99,11 @@ class WeatherAPIClient:
             print(
                 f"API_Client: Fetched API Forecast Data from {response.Latitude()}°N {response.Longitude()}°E"
             )
-            forecast_dataframe = self._process_hourly_response(
-                response, hourly_vars
-            )  # Pass expected vars for processing
+            forecast_dataframe = self._process_hourly_response(response, hourly_vars)
 
-            # Truncate to exactly 'hours' if more were fetched
             if len(forecast_dataframe) > hours:
                 forecast_dataframe = forecast_dataframe.head(hours)
 
-            # Suffix column names for clarity in dashboard
             forecast_dataframe = forecast_dataframe.rename(
                 columns={
                     col: f"{col}_forecast"

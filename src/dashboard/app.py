@@ -1,6 +1,5 @@
 import os
 import sys
-from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -8,28 +7,26 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output
 
-project_root = os.path.dirname(os.path.abspath(__file__))  # src/dashboard/
-project_root = os.path.dirname(project_root)  # src/
-project_root = os.path.dirname(project_root)  # data-engineering-project/
+project_root = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(project_root)
+project_root = os.path.dirname(project_root)
 sys.path.insert(0, project_root)
 from src.db.database_manager import DatabaseManager
 
 # --- Dash Application ---
 app = Dash(__name__)
 
-# Initialize DatabaseManager
 db_manager = DatabaseManager()
 
-# Load all necessary data when the app starts
+# Load data
 historical_df = db_manager.load_dataframe(table_name="weather_data")
 ml_predictions_df = db_manager.load_dataframe(table_name="weather_predictions")
 api_forecast_df = db_manager.load_dataframe(table_name="weather_api_forecasts")
 
-# Ensure historical_df["date"] is timezone-aware UTC
 if not historical_df.empty:
     historical_df["date"] = pd.to_datetime(historical_df["date"], utc=True)
 
-# Set default date range (last 7 days)
+# Default  range (last 7 days)
 last_historical_date = historical_df["date"].max() if not historical_df.empty else None
 default_end_date = last_historical_date
 default_start_date = (
@@ -38,8 +35,7 @@ default_start_date = (
 
 
 def prepare_combined_data(start_date, end_date):
-    """Prepare combined DataFrame for plotting based on date range."""
-    # Convert inputs to timezone-aware UTC
+    """Prepare combined Data for plotting based on date range"""
     start_date = pd.to_datetime(start_date, utc=True)
     end_date = pd.to_datetime(end_date, utc=True)
 
@@ -174,23 +170,18 @@ def create_contour_plot(df: pd.DataFrame):
         print("No temperature data available for contour plot.")
         return go.Figure()
 
-    # Ensure date is datetime
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"], utc=True)
 
-    # Extract day and hour
     df["day"] = df["date"].dt.date
     df["hour"] = df["date"].dt.hour
 
-    # Pivot to create 2D grid: rows = hours, columns = days
     pivot_df = df.pivot_table(
         values="temperature_2m", index="hour", columns="day", aggfunc="mean"
     )
 
-    # Handle missing values
     pivot_df = pivot_df.ffill(axis=1).bfill(axis=1)
 
-    # Get x, y, z for contour
     x = pivot_df.columns  # Days
     y = pivot_df.index  # Hours
     z = pivot_df.values  # Temperatures
@@ -238,7 +229,6 @@ def create_contour_plot(df: pd.DataFrame):
     return fig
 
 
-# Initial combined data
 combined_df = prepare_combined_data(default_start_date, default_end_date)
 
 # Initial plots
@@ -345,7 +335,7 @@ app.layout = html.Div(
                 ),
             ],
         ),
-        # Existing plots
+        # Plots
         html.Div(
             style={
                 "backgroundColor": "white",
@@ -470,7 +460,6 @@ app.layout = html.Div(
 )
 
 
-# Callback to update plots based on date range
 @app.callback(
     [
         Output("temperature-plot", "figure"),
@@ -486,19 +475,16 @@ app.layout = html.Div(
     ],
 )
 def update_plots(start_date, end_date):
-    # Handle None or invalid dates
     start_date = (
         pd.to_datetime(start_date, utc=True) if start_date else default_start_date
     )
     end_date = pd.to_datetime(end_date, utc=True) if end_date else default_end_date
 
-    # Ensure timezone-aware UTC
     if start_date and not start_date.tzinfo:
         start_date = start_date.tz_localize("UTC")
     if end_date and not end_date.tzinfo:
         end_date = end_date.tz_localize("UTC")
 
-    # Prepare data
     combined_df = prepare_combined_data(start_date, end_date)
     historical_filtered = historical_df[
         (historical_df["date"] >= start_date) & (historical_df["date"] <= end_date)
@@ -540,7 +526,6 @@ def update_plots(start_date, end_date):
     return temp_fig, humidity_fig, wind_fig, precipitation_fig, cloud_fig, contour_fig
 
 
-# Run the app
 if __name__ == "__main__":
     print("Starting Dash application...")
     print(

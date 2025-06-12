@@ -1,7 +1,15 @@
-.git/
-.venv/
+.env
+*.env
 __pycache__/
 *.pyc
+.venv/
+.cache/
+data/
 *.log
-data/historical_weather.csv # No need to copy the generated CSV, as it's fetched from API
-.env 
+.idea/
+.git
+.gitignore
+*.sqlite
+.cache.sqlite
+*.swp
+*.swo

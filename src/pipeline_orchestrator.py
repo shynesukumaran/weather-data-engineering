@@ -1,12 +1,9 @@
-# src/pipeline_orchestrator.py (Adjusted Date Logic)
-
 import datetime
 import os
 import sys
 
-# Add the project root to the Python path
-project_root = os.path.dirname(os.path.abspath(__file__))  # src/
-project_root = os.path.dirname(project_root)  # data-engineering-project/
+project_root = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(project_root)
 sys.path.insert(0, project_root)
 
 from src.data_extract.weather_api_client import WeatherAPIClient
@@ -28,9 +25,7 @@ def run_daily_pipeline():
     current_time = datetime.datetime.now(datetime.timezone.utc)
     print(f"[{current_time}] Starting daily weather data pipeline...")
 
-    # Initialize Managers/Clients
     db_manager = DatabaseManager()
-    # Assuming Magdeburg coordinates for now (52.1132, 11.6081)
     api_client = WeatherAPIClient(latitude=52.1132, longitude=11.6081)
     forecaster = WeatherForecaster(
         features_to_predict=[
@@ -40,15 +35,12 @@ def run_daily_pipeline():
             "wind_speed_10m",
             "precipitation",
         ],
-        lags=24,  # Example: use last 24 hours for features
+        lags=24,
     )
 
     try:
-        # --- Dynamic Date Range for Historical Data ---
         today = datetime.date.today()
-        # Fetch historical data up to yesterday
         historical_end_date = today - datetime.timedelta(days=1)
-        # Fetch data for, say, the last 3-5 years. Adjust as needed for your model training.
         historical_start_date = historical_end_date - datetime.timedelta(
             days=365 * 3 + 180
         )  # Approx 3.5 years back
@@ -138,8 +130,7 @@ def run_daily_pipeline():
         )
 
     finally:
-        # Dispose the database engine once the pipeline is finished
-        if db_manager._engine:  # Access the private attribute for disposal
+        if db_manager._engine:
             db_manager._dispose_engine()
             print(f"[{current_time}] Database engine disposed.")
 

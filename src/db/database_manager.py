@@ -1,5 +1,3 @@
-# src/db/database_manager.py
-
 import datetime
 import os
 
@@ -11,17 +9,15 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class DatabaseManager:
     """
-    Manages database connections and operations for the weather data project
+    Manages database connections and operations for the weather data pipeline
     """
 
     def __init__(self):
-        # Load environment variables from .env file
         load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
         self._connection_string = self._get_db_connection_string()
-        self._engine = None  # Initialize engine to None
+        self._engine = None
 
     def _get_db_connection_string(self) -> str | None:
-        """Constructs the PostgreSQL connection string from environment variables."""
         db_host = os.getenv("DB_HOST", "localhost")
         db_port = os.getenv("DB_PORT", "5432")
         db_name = os.getenv("DB_NAME")
@@ -37,7 +33,6 @@ class DatabaseManager:
         return f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
     def _get_engine(self):
-        """Returns a SQLAlchemy engine, creating it if it doesn't exist."""
         if self._engine is None:
             if not self._connection_string:
                 raise ValueError(
@@ -48,7 +43,6 @@ class DatabaseManager:
         return self._engine
 
     def _dispose_engine(self):
-        """Disposes the SQLAlchemy engine. Call this explicitly on application shutdown."""
         if self._engine:
             self._engine.dispose()
             self._engine = None
@@ -68,7 +62,6 @@ class DatabaseManager:
             data_to_store (pd.DataFrame): The DataFrame to store.
             table_name (str): The name of the table in the database.
             if_exists (str): How to behave if the table already exists.
-                            'fail', 'replace', 'append'. (default: 'append')
             add_timestamp_col (str | None): If provided, adds a column with the current UTC timestamp
                                         before storing. E.g., 'loaded_at', 'generated_at'.
         """
@@ -79,10 +72,8 @@ class DatabaseManager:
             return
 
         try:
-            engine = (
-                self._get_engine()
-            )  # Get the engine, it will be created if not exists
-            # Ensure 'date' (or any index) is a regular column before storing
+            engine = self._get_engine()
+
             df_to_store = (
                 data_to_store.reset_index()
                 if "date" in data_to_store.index.names
@@ -111,9 +102,7 @@ class DatabaseManager:
         Loads data from a specified PostgreSQL table into a Pandas DataFrame.
         """
         try:
-            engine = (
-                self._get_engine()
-            )  # Get the engine, it will be created if not exists
+            engine = self._get_engine()
             with engine.connect() as connection:
                 df = pd.read_sql_table(table_name, connection)
                 print(
