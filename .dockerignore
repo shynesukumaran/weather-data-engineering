@@ -1,0 +1,7 @@
+.git/
+.venv/
+__pycache__/
+*.pyc
+*.log
+data/historical_weather.csv # No need to copy the generated CSV, as it's fetched from API
+.env 
