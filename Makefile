@@ -1,7 +1,5 @@
-# Makefile for Weather Data Engineering Project
-
 # --- Configuration ---
-PYTHON_ENV := .venv # This remains for local development/testing, but Docker targets won't use it directly
+PYTHON_ENV := .venv 
 PYTHON := $(PYTHON_ENV)/bin/python
 PIP := $(PYTHON_ENV)/bin/pip
 
@@ -11,15 +9,12 @@ PIPELINE_ORCHESTRATOR_MODULE := src.pipeline_orchestrator
 DOCKER_IMAGE_NAME := weather-dashboard-app
 DOCKER_PORT := 8050
 
-# Load .env variables into make environment
-# This line reads the .env file and exports variables
 include .env
 export $(shell sed 's/=.*//' .env)
 
 
-# --- Phony targets (don't correspond to actual files) ---
 .PHONY: all install run-pipeline build-docker run-docker stop-docker clean help setup-env logs \
-        run-pipeline-docker # Added a specific target for running pipeline via docker compose
+        run-pipeline-docker 
 
 # --- Default target ---
 # The 'all' target now orchestrates the Docker Compose workflow:
@@ -30,7 +25,7 @@ export $(shell sed 's/=.*//' .env)
 # 5. Tails the app logs.
 all: build-docker docker-up-db run-pipeline-docker docker-up-app logs-app
 
-# --- Help target ---
+
 help:
 	@echo "Usage: make [target]"
 	@echo ""
